@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import { Circle, Infinity, MoveHorizontal, MoveVertical, Music2, Scan, Waves, Shuffle, Speaker, AppWindow, Square, Triangle, MoveDiagonal } from "lucide-react";
+import { Circle, Infinity, MoveHorizontal, MoveVertical, Music2, Scan, Waves, Shuffle, Speaker, AppWindow, Square, Triangle, MoveDiagonal, RectangleHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -26,10 +26,11 @@ import { Label } from "./ui/label";
 const formSchema = z.object({
   duration: z.number().min(30).max(120),
   period: z.number().min(2).max(8),
-  direction: z.enum(["random", "horizontal", "vertical", "circular", "figure-eight", "infinity-loop", "diagonal", "diagonal-reverse"]),
-  sound: z.enum(["random", "ting", "beep", "heartbeat", "woodblock", "tonal"]),
+  direction: z.enum(['random', 'horizontal', 'vertical', 'circular', 'figure-eight', 'infinity-loop', 'diagonal', 'diagonal-reverse']),
+  sound: z.enum(['random', 'ting', 'beep', 'heartbeat', 'woodblock', 'tonal']),
   color: z.enum(["primary", "accent"]),
   shape: z.enum(["circle", "square", "triangle"]),
+  aspectRatio: z.enum(['4:3', '16:9', '16:10', 'full']),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -43,7 +44,7 @@ const directionOptions = [
   { value: "infinity-loop", label: "Infinity", icon: Infinity },
   { value: "diagonal", label: "Diagonal", icon: MoveDiagonal },
   { value: "diagonal-reverse", label: "Diagonal Rev.", icon: MoveDiagonal },
-];
+] as const;
 
 const soundOptions = [
   { value: "random", label: "Random", icon: Shuffle },
@@ -52,18 +53,25 @@ const soundOptions = [
   { value: "heartbeat", label: "Heartbeat", icon: Music2 },
   { value: "woodblock", label: "Woodblock", icon: AppWindow },
   { value: "tonal", label: "Tonal", icon: Speaker },
-];
+] as const;
 
 const colorOptions = [
     { value: "primary", label: "Primary", className: "bg-primary" },
     { value: "accent", label: "Accent", className: "bg-accent" },
-];
+] as const;
 
 const shapeOptions = [
     { value: "circle", label: "Circle", icon: Circle },
     { value: "square", label: "Square", icon: Square },
     { value: "triangle", label: "Triangle", icon: Triangle },
-];
+] as const;
+
+const aspectRatioOptions = [
+    { value: "4:3", label: "4:3", icon: RectangleHorizontal },
+    { value: "16:9", label: "16:9", icon: RectangleHorizontal },
+    { value: "16:10", label: "16:10", icon: RectangleHorizontal },
+    { value: "full", label: "Full", icon: AppWindow },
+] as const;
 
 
 const SETTINGS_KEY = 'bilateral-stimulation-settings';
@@ -75,6 +83,7 @@ const defaultValues: FormValues = {
   sound: "ting",
   color: "primary",
   shape: "circle",
+  aspectRatio: "full",
 };
 
 export function SettingsForm() {
@@ -114,6 +123,7 @@ export function SettingsForm() {
   const watchSound = form.watch("sound");
   const watchColor = form.watch("color");
   const watchShape = form.watch("shape");
+  const watchAspectRatio = form.watch("aspectRatio");
 
 
   function onSubmit(values: FormValues) {
@@ -136,13 +146,13 @@ export function SettingsForm() {
       sound,
       color: values.color,
       shape: values.shape,
+      aspectRatio: values.aspectRatio,
     });
     router.push(`/session?${params.toString()}`);
   }
 
   if (!isClient) {
-    // Render a placeholder or null on the server and initial client render
-    return null; // Or a loading skeleton
+    return null;
   }
 
   return (
@@ -333,6 +343,40 @@ export function SettingsForm() {
                 )}
             />
         </div>
+        
+        <FormField
+            control={form.control}
+            name="aspectRatio"
+            render={({ field }) => (
+                <FormItem className="space-y-3">
+                <FormLabel>Aspect Ratio</FormLabel>
+                <FormControl>
+                    <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    className="grid grid-cols-2 md:grid-cols-4 gap-4"
+                    >
+                    {aspectRatioOptions.map((option) => (
+                        <FormItem key={option.value} className="flex-1">
+                        <FormControl>
+                            <RadioGroupItem value={option.value} className="sr-only" id={`aspect-${option.value}`} />
+                        </FormControl>
+                        <Label
+                            htmlFor={`aspect-${option.value}`}
+                            data-state={watchAspectRatio === option.value ? 'checked' : 'unchecked'}
+                            className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground data-[state=checked]:border-primary [&:has(:checked)]:border-primary cursor-pointer transition-colors"
+                        >
+                            <option.icon className="mb-3 h-6 w-6" />
+                            {option.label}
+                        </Label>
+                        </FormItem>
+                    ))}
+                    </RadioGroup>
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+        />
         
         <Button type="submit" className="w-full text-lg" size="lg">
           Start Session

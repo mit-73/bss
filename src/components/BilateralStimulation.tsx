@@ -15,11 +15,11 @@ interface BilateralStimulationProps {
   sound: string;
   color: string;
   shape: string;
+  aspectRatio: string;
 }
 
 const sounds: { [key: string]: () => any } = {
   ting: () => new Tone.MetalSynth({
-    frequency: 200,
     envelope: { attack: 0.001, decay: 0.1, release: 0.05 },
     harmonicity: 5.1,
     modulationIndex: 32,
@@ -58,6 +58,7 @@ export function BilateralStimulation({
   sound,
   color,
   shape,
+  aspectRatio,
 }: BilateralStimulationProps) {
   const router = useRouter();
   const [status, setStatus] = useState<"ready" | "countdown" | "running" | "stopping" | "done">("ready");
@@ -65,11 +66,12 @@ export function BilateralStimulation({
   const [timeRemaining, setTimeRemaining] = useState(durationInSeconds);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const animationAreaRef = useRef<HTMLDivElement>(null);
   const ballRef = useRef<HTMLDivElement>(null);
-  const animationFrameId = useRef<number>();
+  const animationFrameId = useRef<number>(0);
   const synthRef = useRef<any>(null);
   const pannerRef = useRef<Tone.Panner | null>(null);
-  const sessionIntervalRef = useRef<NodeJS.Timeout>();
+  const sessionIntervalRef = useRef<any>(null);
   const lastPanDirection = useRef(0);
   const stopTimestamp = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -142,7 +144,7 @@ export function BilateralStimulation({
       startTimeRef.current = performance.now();
       
       const animate = (currentTime: number) => {
-        if (!containerRef.current || !ballRef.current) {
+        if (!animationAreaRef.current || !ballRef.current) {
           animationFrameId.current = requestAnimationFrame(animate);
           return;
         }
@@ -150,7 +152,7 @@ export function BilateralStimulation({
         const elapsedTime = currentTime - startTimeRef.current;
         let progress = (elapsedTime % period) / period; // 0 to 1
 
-        const { width, height } = containerRef.current.getBoundingClientRect();
+        const { width, height } = animationAreaRef.current.getBoundingClientRect();
         const ballSize = 50;
         const xMax = width - ballSize;
         const yMax = height - ballSize;
@@ -244,13 +246,13 @@ export function BilateralStimulation({
 
             let progress = (slowedElapsedTime % period) / period;
             
-            if (!containerRef.current || !ballRef.current) {
+            if (!animationAreaRef.current || !ballRef.current) {
                 if (stopProgress < 1) animationFrameId.current = requestAnimationFrame(animateStop);
                 else setStatus("done");
                 return;
             }
 
-            const { width, height } = containerRef.current.getBoundingClientRect();
+            const { width, height } = animationAreaRef.current.getBoundingClientRect();
             const ballSize = 50;
             const xMax = width - ballSize;
             const yMax = height - ballSize;
@@ -368,6 +370,48 @@ export function BilateralStimulation({
     accent: 'border-b-accent',
   }[color] || 'border-b-primary';
 
+  const animationAreaWrapperStyle: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100vw',
+    height: '100vh'
+  };
+
+  const animationAreaStyle: React.CSSProperties = {
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+      maxWidth: '100vw',
+      maxHeight: '100vh',
+  };
+
+  if (aspectRatio !== 'full') {
+    animationAreaStyle.aspectRatio = aspectRatio.replace(':', ' / ');
+    if (aspectRatio === '4:3') {
+        animationAreaStyle.width = 'calc(100vh * 4 / 3)';
+        animationAreaStyle.height = '100vh';
+        if (typeof window !== 'undefined' && (window.innerHeight * 4 / 3 > window.innerWidth)) {
+            animationAreaStyle.width = '100vw';
+            animationAreaStyle.height = 'calc(100vw * 3 / 4)';
+        }
+    } else if (aspectRatio === '16:9') {
+        animationAreaStyle.width = 'calc(100vh * 16 / 9)';
+        animationAreaStyle.height = '100vh';
+        if (typeof window !== 'undefined' && (window.innerHeight * 16 / 9 > window.innerWidth)) {
+            animationAreaStyle.width = '100vw';
+            animationAreaStyle.height = 'calc(100vw * 9 / 16)';
+        }
+    } else if (aspectRatio === '16:10') {
+        animationAreaStyle.width = 'calc(100vh * 16 / 10)';
+        animationAreaStyle.height = '100vh';
+         if (typeof window !== 'undefined' && (window.innerHeight * 16 / 10 > window.innerWidth)) {
+            animationAreaStyle.width = '100vw';
+            animationAreaStyle.height = 'calc(100vw * 10 / 16)';
+        }
+    }
+  }
+  
   return (
     <div
       ref={containerRef}
@@ -390,31 +434,38 @@ export function BilateralStimulation({
       )}
 
       {(status === "running" || status === "stopping") && (
-        <>
-            <div
-                ref={ballRef}
-                data-id="ball"
-                className={cn(ballClasses, {
-                    [triangleColorClass]: shape === "triangle",
-                    "bg-transparent": shape === "triangle"
-                })}
-                style={shape === 'triangle' ? {
-                    width: 0,
-                    height: 0,
-                    backgroundColor: 'transparent'
-                } : {}}
-            ></div>
-           {status === "running" && (<>
-             <div className="absolute top-4 right-4 bg-black/20 text-white px-4 py-2 rounded-lg text-lg font-mono backdrop-blur-sm">
-                {formatTime(timeRemaining)}
+         <div style={animationAreaWrapperStyle}>
+            <div ref={animationAreaRef} style={animationAreaStyle}>
+                <div
+                    ref={ballRef}
+                    data-id="ball"
+                    className={cn(ballClasses, {
+                        [triangleColorClass]: shape === "triangle",
+                        "bg-transparent": shape === "triangle"
+                    })}
+                    style={shape === 'triangle' ? {
+                        width: 0,
+                        height: 0,
+                        backgroundColor: 'transparent'
+                    } : {}}
+                ></div>
             </div>
-            <Button onClick={safeHandleStop} variant="ghost" size="icon" className="absolute top-4 left-4 h-12 w-12 bg-black/20 hover:bg-black/40 text-white hover:text-white backdrop-blur-sm">
-                <span className="sr-only">Stop Session</span>
-                <X className="h-6 w-6" />
-            </Button>
-           </>)}
-        </>
+        </div>
       )}
+      
+       {(status === "running" || status === "stopping") && status !== "ready" && status !== "countdown" && (
+        <>
+            {status === "running" && (<>
+              <div className="absolute top-4 right-4 bg-black/20 text-white px-4 py-2 rounded-lg text-lg font-mono backdrop-blur-sm">
+                  {formatTime(timeRemaining)}
+              </div>
+              <Button onClick={safeHandleStop} variant="ghost" size="icon" className="absolute top-4 left-4 h-12 w-12 bg-black/20 hover:bg-black/40 text-white hover:text-white backdrop-blur-sm">
+                  <span className="sr-only">Stop Session</span>
+                  <X className="h-6 w-6" />
+              </Button>
+            </>)}
+        </>
+       )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { Waves } from "lucide-react";
 export default function Home() {
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
-      <div className="w-full max-w-2xl">
+      <div className="container mx-auto px-16">
         <Card className="shadow-2xl">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">

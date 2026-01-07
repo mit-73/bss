@@ -13,6 +13,7 @@ function SessionPageContent() {
   const sound = searchParams.get('sound');
   const color = searchParams.get('color');
   const shape = searchParams.get('shape');
+  const aspectRatio = searchParams.get('aspectRatio');
 
   const durationInSeconds = duration ? parseInt(duration, 10) : 45;
   const periodInSeconds = period ? parseFloat(period) : 4;
@@ -20,6 +21,7 @@ function SessionPageContent() {
   const stimulationSound = sound || 'click';
   const stimulusColor = color || 'primary';
   const stimulusShape = shape || 'circle';
+  const stimulusAspectRatio = aspectRatio || 'full';
 
   return (
     <BilateralStimulation
@@ -29,6 +31,7 @@ function SessionPageContent() {
       sound={stimulationSound}
       color={stimulusColor}
       shape={stimulusShape}
+      aspectRatio={stimulusAspectRatio}
     />
   );
 }
@@ -40,5 +43,3 @@ export default function SessionPage() {
     </Suspense>
   );
 }
-
-    
